@@ -7,7 +7,6 @@ A collection of Helm charts for deploying applications on Kubernetes.
 | Chart | Version | Description |
 |-------|---------|-------------|
 | [generic](./generic/) | 1.0.9 | A generic Helm chart for deploying containerized applications with support for both Deployment and StatefulSet workloads |
-| [atlas-ip-updater](./atlas-ip-updater/) | 1.0.0 | A Helm chart for a CronJob that updates MongoDB Atlas IP whitelist with Kubernetes node external IPs |
 | [raw](./raw/) | 0.2.5 | A raw chart to deploy loose kubernetes resources |
 
 ## Prerequisites
