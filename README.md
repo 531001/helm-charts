@@ -65,7 +65,6 @@ helm install my-release ./generic -f values.yaml
 Each chart has its own README with detailed documentation:
 
 - **[generic](./generic/README.md)** - Full-featured chart supporting Deployments, StatefulSets, Jobs, CronJobs, Services, Ingress, HPA, VPA, ServiceMonitor, and more
-- **[atlas-ip-updater](./atlas-ip-updater/README.md)** - CronJob for MongoDB Atlas IP whitelist management
 - **[raw](./raw/README.md)** - Deploy raw Kubernetes resources
 
 ## Generic Chart Features
