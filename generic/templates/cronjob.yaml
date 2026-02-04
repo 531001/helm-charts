@@ -1,0 +1,140 @@
+{{- if .Values.cronjob.enabled -}}
+{{- if .Capabilities.APIVersions.Has "batch/v1/CronJob" }}
+apiVersion: batch/v1
+{{- else }}
+apiVersion: batch/v1beta1
+{{- end }}
+kind: CronJob
+metadata:
+  name: {{ include "generic.fullname" . }}-cronjob
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+    {{- with .Values.cronjob.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.cronjob.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  schedule: {{ required "cronjob.schedule is required when cronjob.enabled=true" .Values.cronjob.schedule | quote }}
+  {{- with .Values.cronjob.timeZone }}
+  timeZone: {{ . | quote }}
+  {{- end }}
+  concurrencyPolicy: {{ .Values.cronjob.concurrencyPolicy }}
+  {{- if ne .Values.cronjob.startingDeadlineSeconds nil }}
+  startingDeadlineSeconds: {{ .Values.cronjob.startingDeadlineSeconds }}
+  {{- end }}
+  suspend: {{ .Values.cronjob.suspend }}
+  {{- if ne .Values.cronjob.successfulJobsHistoryLimit nil }}
+  successfulJobsHistoryLimit: {{ .Values.cronjob.successfulJobsHistoryLimit }}
+  {{- end }}
+  {{- if ne .Values.cronjob.failedJobsHistoryLimit nil }}
+  failedJobsHistoryLimit: {{ .Values.cronjob.failedJobsHistoryLimit }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      {{- if ne .Values.cronjob.job.parallelism nil }}
+      parallelism: {{ .Values.cronjob.job.parallelism }}
+      {{- end }}
+      {{- if ne .Values.cronjob.job.completions nil }}
+      completions: {{ .Values.cronjob.job.completions }}
+      {{- end }}
+      {{- if ne .Values.cronjob.job.backoffLimit nil }}
+      backoffLimit: {{ .Values.cronjob.job.backoffLimit }}
+      {{- end }}
+      {{- if ne .Values.cronjob.job.activeDeadlineSeconds nil }}
+      activeDeadlineSeconds: {{ .Values.cronjob.job.activeDeadlineSeconds }}
+      {{- end }}
+      {{- if ne .Values.cronjob.job.ttlSecondsAfterFinished nil }}
+      ttlSecondsAfterFinished: {{ .Values.cronjob.job.ttlSecondsAfterFinished }}
+      {{- end }}
+      template:
+        metadata:
+          {{- $podAnnotations := merge (dict) (default (dict) .Values.podAnnotations) (default (dict) .Values.cronjob.job.podAnnotations) }}
+          {{- with $podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            {{- include "generic.labels" . | nindent 12 }}
+            {{- $podLabels := merge (dict) (default (dict) .Values.podLabels) (default (dict) .Values.cronjob.job.podLabels) }}
+            {{- with $podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: {{ .Values.cronjob.job.restartPolicy | default "OnFailure" }}
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "generic.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: {{ include "generic.fullname" . }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- if .Values.command }}
+              command:
+                {{- toYaml .Values.command | nindent 16 }}
+              {{- end }}
+              {{- if .Values.args }}
+              args:
+                {{- toYaml .Values.args | nindent 16 }}
+              {{- end }}
+              {{- if .Values.envVars }}
+              env:
+                {{- toYaml .Values.envVars | nindent 16 }}
+              {{- end }}
+              {{- if .Values.resources }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              {{- end }}
+              {{- $cronJobVolumeMounts := (concat (default (list) .Values.volumeMounts) (default (list) .Values.cronjob.job.volumeMounts)) }}
+              {{- $usePersistenceForCronjob := and .Values.persistence.enabled (or .Values.persistence.existingClaim (eq .Values.type "deployment")) }}
+              {{- if or $usePersistenceForCronjob $cronJobVolumeMounts }}
+              volumeMounts:
+                {{- if $usePersistenceForCronjob }}
+                - name: {{ .Values.persistence.name }}
+                  mountPath: {{ .Values.persistence.mountPath }}
+                  {{- with .Values.persistence.subPath }}
+                  {{- if ne . "" }}
+                  subPath: {{ . }}
+                  {{- end }}
+                  {{- end }}
+                {{- end }}
+                {{- with $cronJobVolumeMounts }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              {{- end }}
+            {{- with .Values.extraContainers }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- $cronJobVolumes := (concat (default (list) .Values.volumes) (default (list) .Values.cronjob.job.volumes)) }}
+          {{- if or $usePersistenceForCronjob $cronJobVolumes }}
+          volumes:
+            {{- if $usePersistenceForCronjob }}
+            - name: {{ .Values.persistence.name }}
+              persistentVolumeClaim:
+                claimName: {{ if .Values.persistence.existingClaim }}{{ .Values.persistence.existingClaim }}{{ else }}{{ include "generic.persistenceClaimName" . }}{{ end }}
+            {{- end }}
+            {{- with $cronJobVolumes }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

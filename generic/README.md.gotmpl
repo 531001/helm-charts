@@ -1,0 +1,269 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+## Prerequisites
+
+Before using this Helm chart, you should have the following prerequisites:
+
+- Access to Kubernetes cluster (If needed contact your friendly neighbourhood DevOps engineer)
+- Helm >= v3.14.3
+- (**Optional**) helmfile >= v0.162.0 to install this chart
+
+## Installation
+
+> Note: **examples** can be found in the repository
+
+To install this Helm chart, the easiest is to create a helmfile.yaml with needed values and run:
+
+```
+helmfile template
+helmfile apply
+```
+
+Or use helmfile only to generate resources and apply them with kubectl like so:
+
+```
+helmfile template | kubectl -f -
+```
+
+Verify that the chart is deployed successfully:
+
+> Note: `kubectl` is a better suited tool for this
+
+```
+helmfile status
+```
+
+## Persistence (Deployment/StatefulSet)
+
+This chart can create and mount persistent storage for the main workload using `persistence.*`.
+
+- Deployment: creates a `PersistentVolumeClaim` (unless `persistence.existingClaim` is set).
+- StatefulSet: uses `volumeClaimTemplates` (unless `persistence.existingClaim` is set).
+
+### Example (StatefulSet volumeClaimTemplates)
+
+```yaml
+type: statefulset
+persistence:
+  enabled: true
+  name: app-data
+  mountPath: /data/app
+  accessModes:
+    - ReadWriteMany
+  size: 1Gi
+  storageClassName: do-block-storage
+```
+
+### Example (Deployment PVC with explicit name)
+
+```yaml
+type: deployment
+persistence:
+  enabled: true
+  name: app-data
+  mountPath: /data/app
+  # PVC name to create + mount
+  claimName: my-app-pvc
+  size: 1Gi
+  storageClassName: do-block-storage
+```
+
+## Filesystem mounts (Job/CronJob)
+
+Jobs/CronJobs do not create PVCs automatically.
+
+- You can mount an existing PVC by setting `persistence.enabled=true` and `persistence.existingClaim`.
+- If your main workload is a Deployment and `persistence.enabled=true`, the chart will create the PVC and Jobs/CronJobs will mount it automatically.
+
+You can also continue to reference PVCs manually via `job.volumes` / `cronjob.job.volumes`.
+
+### CronJob + emptyDir
+
+```yaml
+cronjob:
+  enabled: true
+  schedule: "*/5 * * * *"
+  job:
+    volumes:
+      - name: workdir
+        emptyDir: {}
+    volumeMounts:
+      - name: workdir
+        mountPath: /work
+```
+
+### CronJob + existing PVC
+
+```yaml
+cronjob:
+  enabled: true
+  schedule: "0 * * * *"
+  job:
+    volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: my-existing-pvc
+    volumeMounts:
+      - name: data
+        mountPath: /data
+```
+
+## ConfigMap
+
+This chart can optionally create a ConfigMap via `configmap.*`. You can then mount it using `volumes` / `volumeMounts` (or reference it via `envVars`).
+
+```yaml
+configmap:
+  enabled: true
+  data:
+    APP_ENV: production
+    LOG_LEVEL: info
+
+volumes:
+  - name: app-config
+    configMap:
+      name: my-release-generic
+
+volumeMounts:
+  - name: app-config
+    mountPath: /etc/config
+    readOnly: true
+```
+
+## Secrets
+
+This chart can optionally create Secrets via `secrets` (rendered as `stringData`).
+
+```yaml
+secrets:
+  - name: my-app-secret
+    items:
+      - key: username
+        value: admin
+      - key: password
+        value: supersecret
+```
+
+## Service
+
+```yaml
+service:
+  type: ClusterIP
+  port: 80
+
+  # Optional: multiple named ports
+  # ports:
+  #   - name: http
+  #     port: 80
+  #     protocol: TCP
+```
+
+## Ingress
+
+```yaml
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          # Optional overrides per-path
+          # serviceName: my-release-generic
+          # servicePort: 80
+  tls: []
+  # - secretName: example-tls
+  #   hosts:
+  #     - example.com
+```
+
+## HPA
+
+### Example (CPU-based)
+
+```yaml
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+  # Optional tuning
+  # behavior:
+  #   scaleUp:
+  #     stabilizationWindowSeconds: 0
+  #     policies:
+  #       - type: Percent
+  #         value: 100
+  #         periodSeconds: 15
+  #   scaleDown:
+  #     stabilizationWindowSeconds: 300
+  #     policies:
+  #       - type: Percent
+  #         value: 20
+  #         periodSeconds: 60
+```
+
+## VPA
+
+VPA (Vertical Pod Autoscaler) adjusts pod resource requests (and optionally limits). It requires the VPA controller + CRDs installed.
+
+### Example (recommendations only)
+
+```yaml
+vpa:
+  enabled: true
+  updatePolicy:
+    updateMode: Off
+  # resourcePolicy:
+  #   containerPolicies:
+  #     - containerName: "*"
+  #       controlledResources: ["cpu", "memory"]
+```
+
+### Example (auto updates + bounds)
+
+```yaml
+vpa:
+  enabled: true
+  updatePolicy:
+    updateMode: Auto
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        controlledResources: ["cpu", "memory"]
+        minAllowed:
+          cpu: 100m
+          memory: 128Mi
+        maxAllowed:
+          cpu: "2"
+          memory: 2Gi
+```
+
+## ServiceMonitor
+
+```yaml
+serviceMonitor:
+  enabled: true
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+```
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}

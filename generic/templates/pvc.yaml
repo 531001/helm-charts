@@ -1,0 +1,19 @@
+{{- if and (eq .Values.type "deployment") .Values.persistence.enabled (not .Values.persistence.existingClaim) -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "generic.persistenceClaimName" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.persistence.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+  {{- with .Values.persistence.storageClassName }}
+  {{- if ne . "" }}
+  storageClassName: {{ . }}
+  {{- end }}
+  {{- end }}
+{{- end -}}

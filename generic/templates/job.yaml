@@ -1,0 +1,136 @@
+{{- if .Values.job.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "generic.fullname" . }}-job
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+    {{- with .Values.job.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.job.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if ne .Values.job.parallelism nil }}
+  parallelism: {{ .Values.job.parallelism }}
+  {{- end }}
+  {{- if ne .Values.job.completions nil }}
+  completions: {{ .Values.job.completions }}
+  {{- end }}
+  {{- if ne .Values.job.backoffLimit nil }}
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  {{- end }}
+  {{- if ne .Values.job.activeDeadlineSeconds nil }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  {{- end }}
+  {{- if ne .Values.job.ttlSecondsAfterFinished nil }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  {{- end }}
+  template:
+    metadata:
+      {{- $globalPodAnnotations := (default (dict) .Values.podAnnotations) }}
+      {{- $jobPodAnnotations := (default (dict) .Values.job.podAnnotations) }}
+      {{- $podAnnotations := merge $globalPodAnnotations $jobPodAnnotations }}
+      {{- with $podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "generic.labels" . | nindent 8 }}
+        {{- $globalPodLabels := (default (dict) .Values.podLabels) }}
+        {{- $jobPodLabels := (default (dict) .Values.job.podLabels) }}
+        {{- $podLabels := merge $globalPodLabels $jobPodLabels }}
+        {{- with $podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      restartPolicy: {{ .Values.job.restartPolicy | default "OnFailure" }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "generic.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "generic.fullname" . }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- /* Lifecycle hooks are generally unnecessary for Jobs; enable only when explicitly configured for this Job. */}}
+          {{- with .Values.job.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.command }}
+          command:
+            {{- toYaml .Values.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          {{- end }}
+          {{- if .Values.envVars }}
+          env:
+            {{- toYaml .Values.envVars | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.resources }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+          {{- $jobVolumeMounts := (concat (default (list) .Values.volumeMounts) (default (list) .Values.job.volumeMounts)) }}
+          {{- $usePersistenceForJob := and .Values.persistence.enabled (or .Values.persistence.existingClaim (eq .Values.type "deployment")) }}
+          {{- if or $usePersistenceForJob $jobVolumeMounts }}
+          volumeMounts:
+            {{- if $usePersistenceForJob }}
+            - name: {{ .Values.persistence.name }}
+              mountPath: {{ .Values.persistence.mountPath }}
+              {{- with .Values.persistence.subPath }}
+              {{- if ne . "" }}
+              subPath: {{ . }}
+              {{- end }}
+              {{- end }}
+            {{- end }}
+            {{- with $jobVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+        {{- with .Values.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- $jobVolumes := (concat (default (list) .Values.volumes) (default (list) .Values.job.volumes)) }}
+      {{- if or $usePersistenceForJob $jobVolumes }}
+      volumes:
+        {{- if $usePersistenceForJob }}
+        - name: {{ .Values.persistence.name }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.existingClaim }}{{ .Values.persistence.existingClaim }}{{ else }}{{ include "generic.persistenceClaimName" . }}{{ end }}
+        {{- end }}
+        {{- with $jobVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
