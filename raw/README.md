@@ -5,7 +5,7 @@
 A raw chart to deploy loose kubernetes resources.
 Cloned from archived https://github.com/helm/charts repo
 
-**Homepage:** <https://github.com/MinaFoundation/helm-charts>
+**Homepage:** <https://github.com/531001/helm-charts>
 
 ## Prerequisites
 
