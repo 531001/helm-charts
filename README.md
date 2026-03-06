@@ -2,13 +2,6 @@
 
 A collection of Helm charts for deploying applications on Kubernetes.
 
-## Available Charts
-
-| Chart | Version | Description |
-|-------|---------|-------------|
-| [generic](./generic/) | 1.0.9 | A generic Helm chart for deploying containerized applications with support for both Deployment and StatefulSet workloads |
-| [raw](./raw/) | 0.2.5 | A raw chart to deploy loose Kubernetes resources |
-
 ## Prerequisites
 
 - Access to Kubernetes cluster (If needed contact your friendly neighbourhood DevOps engineer)
