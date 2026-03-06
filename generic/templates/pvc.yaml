@@ -1,4 +1,4 @@
-{{- if and (eq .Values.type "deployment") .Values.persistence.enabled (not .Values.persistence.existingClaim) -}}
+{{- if and (or (eq .Values.type "deployment") (eq .Values.type "daemonset")) .Values.persistence.enabled (not .Values.persistence.existingClaim) -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

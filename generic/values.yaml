@@ -1,4 +1,4 @@
-# Default values for liminal-manual.
+# Default values for generic.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -53,7 +53,7 @@ revisionHistoryLimit: ""
 deploymentAnnotations: {}
 # -- Annotations to add to the pods
 podAnnotations: {}
-# -- Label to add to the pods
+# -- Labels to add to the pods
 podLabels: {}
 
 # -- The Pod Security Context
@@ -245,7 +245,7 @@ vpa:
   # -- Update policy configuration
   # Typical modes: Off | Initial | Recreate | Auto
   updatePolicy:
-    updateMode: Off
+    updateMode: "Off"
   # -- Resource policy configuration
   # Example:
   # resourcePolicy:

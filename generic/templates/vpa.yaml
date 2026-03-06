@@ -23,6 +23,8 @@ spec:
     apiVersion: apps/v1
     {{- if eq .Values.type "statefulset" }}
     kind: StatefulSet
+    {{- else if eq .Values.type "daemonset" }}
+    kind: DaemonSet
     {{- else }}
     kind: Deployment
     {{- end }}

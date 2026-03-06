@@ -1,4 +1,4 @@
-{{- if .Values.autoscaling.enabled }}
+{{- if and .Values.autoscaling.enabled (ne .Values.type "daemonset") }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -16,7 +16,7 @@ spec:
     name: {{ include "generic.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
-  {{- if .Values.autoscaling.behavior }}
+  {{- if or .Values.autoscaling.behavior.scaleDown .Values.autoscaling.behavior.scaleUp }}
   behavior:
     {{- if .Values.autoscaling.behavior.scaleDown }}
     scaleDown:

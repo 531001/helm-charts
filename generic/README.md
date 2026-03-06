@@ -1,6 +1,6 @@
 # generic
 
-![Version: 1.0.9](https://img.shields.io/badge/Version-1.0.9-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.0](https://img.shields.io/badge/AppVersion-1.0.0-informational?style=flat-square)
+![Version: 1.0.0](https://img.shields.io/badge/Version-1.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.0](https://img.shields.io/badge/AppVersion-1.0.0-informational?style=flat-square)
 
 A generic Helm chart for deploying containerized applications with support for Deployment, StatefulSet, and DaemonSet workloads
 
@@ -26,7 +26,7 @@ helmfile apply
 Or use helmfile only to generate resources and apply them with kubectl like so:
 
 ```
-helmfile template | kubectl -f -
+helmfile template | kubectl apply -f -
 ```
 
 Verify that the chart is deployed successfully:
