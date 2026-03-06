@@ -75,6 +75,7 @@ For detailed documentation and all configuration options, see **[generic/README.
 |----------|----------|------------|
 | **Workloads** | Deployment | `type: deployment` (default) |
 | | StatefulSet | `type: statefulset` |
+| | DaemonSet | `type: daemonset` |
 | | Job | `job.enabled: true` |
 | | CronJob | `cronjob.enabled: true` |
 | **Networking** | Service | `service.enabled: true` (default) |
@@ -99,7 +100,7 @@ For detailed documentation and all configuration options, see **[generic/README.
 | Sidecar containers | `extraContainers` |
 | Environment variables | `envVars`, `envFrom` |
 | Health probes | `livenessProbe`, `readinessProbe`, `startupProbe` |
-| Deployment strategy | `strategy` (Deployment), `updateStrategy` (StatefulSet) |
+| Deployment strategy | `strategy` (Deployment), `updateStrategy` (StatefulSet/DaemonSet) |
 | Topology spread | `topologySpreadConstraints` |
 | Graceful shutdown | `terminationGracePeriodSeconds` |
 | DNS configuration | `dnsPolicy`, `dnsConfig` |
@@ -154,6 +155,20 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+```
+
+### Example: DaemonSet
+
+```yaml
+type: daemonset
+tolerations:
+  - operator: Exists
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
 ```
 
 ### Example: Production-Ready Deployment
@@ -265,7 +280,7 @@ templates:
 
 - **`templates/_helpers.tpl`** — Defines template helpers (`generic.fullname`, `generic.labels`, `generic.selectorLabels`, `generic.serviceAccountName`, `generic.persistenceClaimName`, `generic.configmapName`). All resource templates reference these.
 - **`values.yaml`** — Single values file controls all resource generation. Key top-level keys: `type`, `image`, `service`, `ingress`, `persistence`, `autoscaling`, `vpa`, `podDisruptionBudget`, `networkPolicy`, `configmap`, `secrets`, `job`, `cronjob`, `serviceMonitor`, `initContainers`, `extraContainers`, `extraObjects`.
-- **Persistence behavior differs by workload type**: Deployments create a standalone PVC; StatefulSets use `volumeClaimTemplates`.
+- **Persistence behavior differs by workload type**: Deployments and DaemonSets create a standalone PVC; StatefulSets use `volumeClaimTemplates`.
 - **Jobs/CronJobs** do not render liveness/readiness probes (unlike Deployment/StatefulSet) since health probes are not appropriate for batch workloads.
 - **`extraObjects`** allows injecting arbitrary Kubernetes manifests alongside the chart's managed resources.
 

@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# -- The type of workload to deploy. Can be 'deployment' or 'statefulset'.
+# -- The type of workload to deploy. Can be 'deployment', 'statefulset', or 'daemonset'.
 type: deployment
 
 # -- Replica count
@@ -40,13 +40,13 @@ strategy: {}
 #   maxSurge: 25%
 #   maxUnavailable: 25%
 
-# -- StatefulSet update strategy (only used when type=statefulset)
+# -- StatefulSet/DaemonSet update strategy (only used when type=statefulset or type=daemonset)
 updateStrategy: {}
 # type: RollingUpdate
 # rollingUpdate:
 #   partition: 0
 
-# -- Number of old ReplicaSets to retain (only used when type=deployment)
+# -- Number of old ReplicaSets to retain (used when type=deployment or type=daemonset)
 revisionHistoryLimit: ""
 
 # -- Annotations to add to deployments
@@ -263,7 +263,7 @@ volumes: []
 #     secretName: mysecret
 #     optional: false
 
-# -- Persistence configuration for the main workload (Deployment/StatefulSet).
+# -- Persistence configuration for the main workload (Deployment/StatefulSet/DaemonSet).
 #
 # When enabled:
 # - Deployment: creates a PVC (unless existingClaim is set) and mounts it.

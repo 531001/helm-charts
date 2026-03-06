@@ -2,7 +2,7 @@
 
 ![Version: 1.0.9](https://img.shields.io/badge/Version-1.0.9-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.0.0](https://img.shields.io/badge/AppVersion-1.0.0-informational?style=flat-square)
 
-A generic Helm chart for deploying containerized applications with support for both Deployment and StatefulSet workloads
+A generic Helm chart for deploying containerized applications with support for Deployment, StatefulSet, and DaemonSet workloads
 
 ## Prerequisites
 
@@ -37,12 +37,13 @@ Verify that the chart is deployed successfully:
 helmfile status
 ```
 
-## Persistence (Deployment/StatefulSet)
+## Persistence (Deployment/StatefulSet/DaemonSet)
 
 This chart can create and mount persistent storage for the main workload using `persistence.*`.
 
 - Deployment: creates a `PersistentVolumeClaim` (unless `persistence.existingClaim` is set).
 - StatefulSet: uses `volumeClaimTemplates` (unless `persistence.existingClaim` is set).
+- DaemonSet: creates a `PersistentVolumeClaim` (unless `persistence.existingClaim` is set).
 
 ### Example (StatefulSet volumeClaimTemplates)
 
@@ -268,11 +269,12 @@ strategy:
     maxSurge: 25%
     maxUnavailable: 25%
 
-# For StatefulSets
+# For StatefulSets / DaemonSets
 updateStrategy:
   type: RollingUpdate
   rollingUpdate:
-    partition: 0
+    partition: 0       # StatefulSet only
+    maxUnavailable: 1  # DaemonSet only
 ```
 
 ## HPA
@@ -416,7 +418,7 @@ dnsConfig:
   nameservers:
     - 1.1.1.1
 
-# Revision history (Deployment only)
+# Revision history (Deployment/DaemonSet)
 revisionHistoryLimit: 10
 ```
 
@@ -458,7 +460,7 @@ No configuration is needed — the notes are generated automatically from your `
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| type | string | `"deployment"` | The type of workload to deploy. Can be 'deployment' or 'statefulset'. |
+| type | string | `"deployment"` | The type of workload to deploy. Can be 'deployment', 'statefulset', or 'daemonset'. |
 | replicaCount | int | `1` | Replica count |
 | image.repository | string | `"nginx"` | The image repository |
 | image.pullPolicy | string | `"IfNotPresent"` | The image pull policy |
@@ -471,8 +473,8 @@ No configuration is needed — the notes are generated automatically from your `
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | serviceAccount.name | string | `""` | The name of the service account to use. |
 | strategy | object | `{}` | Deployment strategy (only used when type=deployment) |
-| updateStrategy | object | `{}` | StatefulSet update strategy (only used when type=statefulset) |
-| revisionHistoryLimit | string | `""` | Number of old ReplicaSets to retain (only used when type=deployment) |
+| updateStrategy | object | `{}` | StatefulSet/DaemonSet update strategy (only used when type=statefulset or type=daemonset) |
+| revisionHistoryLimit | string | `""` | Number of old ReplicaSets to retain (used when type=deployment or type=daemonset) |
 | deploymentAnnotations | object | `{}` | Annotations to add to deployments |
 | podAnnotations | object | `{}` | Annotations to add to the pods |
 | podLabels | object | `{}` | Labels to add to the pods |
