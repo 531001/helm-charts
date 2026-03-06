@@ -7,21 +7,20 @@ A collection of Helm charts for deploying applications on Kubernetes.
 | Chart | Version | Description |
 |-------|---------|-------------|
 | [generic](./generic/) | 1.0.9 | A generic Helm chart for deploying containerized applications with support for both Deployment and StatefulSet workloads |
-| [raw](./raw/) | 0.2.5 | A raw chart to deploy loose kubernetes resources |
+| [raw](./raw/) | 0.2.5 | A raw chart to deploy loose Kubernetes resources |
 
 ## Prerequisites
-
-Before using these Helm charts, you should have the following prerequisites:
 
 - Access to Kubernetes cluster (If needed contact your friendly neighbourhood DevOps engineer)
 - Helm >= v3.14.3
 - (**Optional**) helmfile >= v0.162.0 to install these charts
+- (**Optional**) pre-commit for git hooks
 
 ## Installation
 
 ### Using Helmfile (Recommended)
 
-To install a Helm chart, the easiest way is to create a `helmfile.yaml` with needed values and run:
+Create a `helmfile.yaml` with needed values and run:
 
 ```bash
 helmfile template
@@ -44,56 +43,79 @@ helmfile status
 
 ### Using Helm Directly
 
-You can also install charts directly using Helm:
-
-```bash
-# Add the repository (if hosted)
-helm repo add txlabs https://your-chart-repo-url
-
-# Install a chart
-helm install my-release txlabs/generic -f values.yaml
-```
-
-Or install from local directory:
+Install from local directory:
 
 ```bash
 helm install my-release ./generic -f values.yaml
 ```
 
-## Chart Documentation
+Or from a hosted repository:
 
-Each chart has its own README with detailed documentation:
+```bash
+helm repo add txlabs https://your-chart-repo-url
+helm install my-release txlabs/generic -f values.yaml
+```
 
-- **[generic](./generic/README.md)** - Full-featured chart supporting Deployments, StatefulSets, Jobs, CronJobs, Services, Ingress, HPA, VPA, ServiceMonitor, and more
-- **[raw](./raw/README.md)** - Deploy raw Kubernetes resources
+## Common Commands
 
-## Generic Chart Features
+```bash
+# Lint a chart
+helm lint ./generic
+helm lint ./raw
 
-The `generic` chart is a versatile chart that supports:
+# Template render (preview output without deploying)
+helm template my-release ./generic -f values.yaml
+helm template my-release ./raw -f values.yaml
+```
 
-### Workload Types
-- **Deployment** - Standard Kubernetes Deployment
-- **StatefulSet** - For stateful applications
+---
 
-### Additional Resources
-- **Job** - One-time batch jobs
-- **CronJob** - Scheduled jobs
-- **Service** - ClusterIP, NodePort, LoadBalancer
-- **Ingress** - HTTP/HTTPS routing
-- **ConfigMap** - Configuration data
-- **Secrets** - Sensitive data
-- **PersistentVolumeClaim** - Storage
+## Generic Chart
 
-### Autoscaling
-- **HPA** - Horizontal Pod Autoscaler
-- **VPA** - Vertical Pod Autoscaler
+The `generic` chart is a versatile, all-in-one chart used to deploy all applications into Kubernetes via helmfile. A single `values.yaml` controls which resources are created.
 
-### Monitoring
-- **ServiceMonitor** - Prometheus monitoring
+For detailed documentation and all configuration options, see **[generic/README.md](./generic/README.md)**.
 
-### Example Usage
+### Supported Resources
 
-#### Basic Deployment
+| Category | Resource | Enabled By |
+|----------|----------|------------|
+| **Workloads** | Deployment | `type: deployment` (default) |
+| | StatefulSet | `type: statefulset` |
+| | Job | `job.enabled: true` |
+| | CronJob | `cronjob.enabled: true` |
+| **Networking** | Service | `service.enabled: true` (default) |
+| | Ingress | `ingress.enabled: true` |
+| | NetworkPolicy | `networkPolicy.enabled: true` |
+| **Configuration** | ConfigMap | `configmap.enabled: true` |
+| | Secret | `secrets: [...]` |
+| | ServiceAccount | `serviceAccount.create: true` (default) |
+| **Storage** | PersistentVolumeClaim | `persistence.enabled: true` |
+| **Scaling** | HorizontalPodAutoscaler | `autoscaling.enabled: true` |
+| | VerticalPodAutoscaler | `vpa.enabled: true` |
+| **Reliability** | PodDisruptionBudget | `podDisruptionBudget.enabled: true` |
+| **Monitoring** | ServiceMonitor | `serviceMonitor.enabled: true` |
+| **Extensibility** | Extra Objects | `extraObjects: [...]` |
+| **Helm** | NOTES.txt | Always enabled — shows post-install access instructions |
+
+### Pod-Level Features
+
+| Feature | Configuration Key |
+|---------|-------------------|
+| Init containers | `initContainers` |
+| Sidecar containers | `extraContainers` |
+| Environment variables | `envVars`, `envFrom` |
+| Health probes | `livenessProbe`, `readinessProbe`, `startupProbe` |
+| Deployment strategy | `strategy` (Deployment), `updateStrategy` (StatefulSet) |
+| Topology spread | `topologySpreadConstraints` |
+| Graceful shutdown | `terminationGracePeriodSeconds` |
+| DNS configuration | `dnsPolicy`, `dnsConfig` |
+| Lifecycle hooks | `lifecycle` |
+| Revision history | `revisionHistoryLimit` |
+| Security contexts | `podSecurityContext`, `securityContext` |
+| Scheduling | `nodeSelector`, `tolerations`, `affinity` |
+
+### Example: Basic Deployment
 
 ```yaml
 # helmfile.yaml
@@ -109,7 +131,7 @@ releases:
           port: 80
 ```
 
-#### StatefulSet with Persistence
+### Example: StatefulSet with Persistence
 
 ```yaml
 type: statefulset
@@ -123,7 +145,7 @@ persistence:
   storageClassName: do-block-storage
 ```
 
-#### Deployment with Ingress
+### Example: Deployment with Ingress
 
 ```yaml
 type: deployment
@@ -141,7 +163,55 @@ ingress:
           pathType: Prefix
 ```
 
-#### CronJob
+### Example: Production-Ready Deployment
+
+```yaml
+type: deployment
+replicaCount: 3
+
+image:
+  repository: my-app
+  tag: v1.2.3
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 0
+
+initContainers:
+  - name: migrate
+    image: my-app:v1.2.3
+    command: ['./migrate']
+
+envFrom:
+  - secretRef:
+      name: my-app-secrets
+
+startupProbe:
+  httpGet:
+    path: /_/health
+    port: http
+  failureThreshold: 30
+  periodSeconds: 10
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+```
+
+### Example: CronJob
 
 ```yaml
 cronjob:
@@ -157,27 +227,62 @@ cronjob:
         mountPath: /data
 ```
 
-#### HPA Configuration
+---
+
+## Raw Chart
+
+The `raw` chart deploys arbitrary Kubernetes manifests without opinionated templates. Useful for one-off resources that don't fit the generic chart.
+
+For detailed documentation, see **[raw/README.md](./raw/README.md)**.
+
+- **`resources`** — Static YAML manifests deployed as-is (with standard labels merged in)
+- **`templates`** — YAML manifests with Go template support (processed via `tpl`)
+
+### Example: Raw Resources
 
 ```yaml
-autoscaling:
-  enabled: true
-  minReplicas: 1
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 80
+resources:
+  - apiVersion: scheduling.k8s.io/v1
+    kind: PriorityClass
+    metadata:
+      name: high-priority
+    value: 1000000
+    globalDefault: false
+    description: "High priority workloads"
 ```
+
+### Example: Raw Templates (with Go templating)
+
+```yaml
+templates:
+  - |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: my-secret
+    stringData:
+      api-key: {{ .Values.apiKey }}
+```
+
+---
+
+## Architecture
+
+### Generic Chart Internals
+
+- **`templates/_helpers.tpl`** — Defines template helpers (`generic.fullname`, `generic.labels`, `generic.selectorLabels`, `generic.serviceAccountName`, `generic.persistenceClaimName`, `generic.configmapName`). All resource templates reference these.
+- **`values.yaml`** — Single values file controls all resource generation. Key top-level keys: `type`, `image`, `service`, `ingress`, `persistence`, `autoscaling`, `vpa`, `podDisruptionBudget`, `networkPolicy`, `configmap`, `secrets`, `job`, `cronjob`, `serviceMonitor`, `initContainers`, `extraContainers`, `extraObjects`.
+- **Persistence behavior differs by workload type**: Deployments create a standalone PVC; StatefulSets use `volumeClaimTemplates`.
+- **Jobs/CronJobs** do not render liveness/readiness probes (unlike Deployment/StatefulSet) since health probes are not appropriate for batch workloads.
+- **`extraObjects`** allows injecting arbitrary Kubernetes manifests alongside the chart's managed resources.
+
+### Raw Chart Internals
+
+- Merges each item in `resources`/`templates` with a base metadata template (`raw.resource`) that adds standard labels (`app`, `chart`, `release`, `heritage`).
+- `templates` entries support Go templating (processed via `tpl`), while `resources` entries are static YAML.
+- The `raw/ci/` directory contains test value files used for CI validation.
 
 ## Development
-
-### Generating Chart Documentation
-
-This repository uses [helm-docs](https://github.com/norwoodj/helm-docs) to generate chart documentation. The `README.md.gotmpl` template is used to generate individual chart READMEs.
-
-To regenerate documentation:
-
-```bash
-helm-docs
-```
 
 ### Pre-commit Hooks
 
@@ -187,7 +292,7 @@ This repository uses pre-commit hooks. Install them with:
 pre-commit install
 ```
 
-## Contributing
+### Contributing
 
 1. Fork the repository
 2. Create a feature branch

@@ -1,9 +1,14 @@
+{{- if ne .Values.service.enabled false }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "generic.fullname" . }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- if and (eq .Values.type "statefulset") (or (not (hasKey .Values.service "clusterIP")) (eq .Values.service.clusterIP "None")) }}
   clusterIP: None
@@ -33,3 +38,4 @@ spec:
     clientIP:
       timeoutSeconds: {{ .Values.service.sessionAffinity.timeoutSeconds }}
   {{- end }}
+{{- end }}

@@ -33,6 +33,22 @@ serviceAccount:
   # -- The name of the service account to use.
   name: ""
 
+# -- Deployment strategy (only used when type=deployment)
+strategy: {}
+# type: RollingUpdate
+# rollingUpdate:
+#   maxSurge: 25%
+#   maxUnavailable: 25%
+
+# -- StatefulSet update strategy (only used when type=statefulset)
+updateStrategy: {}
+# type: RollingUpdate
+# rollingUpdate:
+#   partition: 0
+
+# -- Number of old ReplicaSets to retain (only used when type=deployment)
+revisionHistoryLimit: ""
+
 # -- Annotations to add to deployments
 deploymentAnnotations: {}
 # -- Annotations to add to the pods
@@ -54,10 +70,14 @@ securityContext: {}
   # runAsUser: 1000
 
 service:
+  # -- Whether to create a Service (set to false for job-only deployments)
+  enabled: true
   # -- The service type
   type: ClusterIP
   # -- The service port
   port: 80
+  # -- Service annotations (useful for AWS LB controller, external-dns, etc.)
+  annotations: {}
 
   sessionAffinity:
     # -- Whether to enable session affinity
@@ -95,6 +115,13 @@ args: []
 
 ## - Environment variables
 envVars: {}
+
+# -- Environment variables from ConfigMaps or Secrets
+envFrom: []
+# - configMapRef:
+#     name: my-configmap
+# - secretRef:
+#     name: my-secret
 # - name: FOO
 #   value: FOO
 # - name: BAR
@@ -125,6 +152,58 @@ readinessProbe:
   httpGet:
     path: /_/health
     port: http
+# -- Startup Probe (useful for slow-starting containers)
+startupProbe: {}
+# httpGet:
+#   path: /_/health
+#   port: http
+# failureThreshold: 30
+# periodSeconds: 10
+
+# -- Pod Disruption Budget configuration
+podDisruptionBudget:
+  # -- Whether to create a PodDisruptionBudget
+  enabled: false
+  # -- PDB annotations
+  annotations: {}
+  # -- Minimum number/percentage of pods that must remain available
+  minAvailable: ""
+  # -- Maximum number/percentage of pods that can be unavailable
+  maxUnavailable: ""
+  # Example: minAvailable: 1 or minAvailable: "50%"
+  # Example: maxUnavailable: 1 or maxUnavailable: "25%"
+  # Note: Only set one of minAvailable or maxUnavailable
+
+# -- Network Policy configuration
+networkPolicy:
+  # -- Whether to create a NetworkPolicy
+  enabled: false
+  # -- NetworkPolicy annotations
+  annotations: {}
+  # -- Policy types to enforce (Ingress, Egress, or both)
+  policyTypes: []
+  # - Ingress
+  # - Egress
+  # -- Ingress rules
+  ingress: []
+  # - from:
+  #     - podSelector:
+  #         matchLabels:
+  #           app: frontend
+  #     - namespaceSelector:
+  #         matchLabels:
+  #           name: my-namespace
+  #   ports:
+  #     - protocol: TCP
+  #       port: 80
+  # -- Egress rules
+  egress: []
+  # - to:
+  #     - ipBlock:
+  #         cidr: 10.0.0.0/8
+  #   ports:
+  #     - protocol: TCP
+  #       port: 443
 
 autoscaling:
   # -- Whether to enable autoscaling
@@ -226,6 +305,28 @@ tolerations: []
 # -- Affinity for pod assignment
 affinity: {}
 
+# -- Topology spread constraints for pod distribution across zones/nodes
+topologySpreadConstraints: []
+# - maxSkew: 1
+#   topologyKey: topology.kubernetes.io/zone
+#   whenUnsatisfiable: DoNotSchedule
+#   labelSelector:
+#     matchLabels:
+#       app: my-app
+
+# -- Termination grace period in seconds
+terminationGracePeriodSeconds: ""
+
+# -- DNS policy for the pod (ClusterFirst, Default, ClusterFirstWithHostNet, None)
+dnsPolicy: ""
+
+# -- DNS config for the pod
+dnsConfig: {}
+# nameservers:
+#   - 1.1.1.1
+# searches:
+#   - my-namespace.svc.cluster.local
+
 # -- Lifecycle hooks
 lifecycle:
   preStop:
@@ -271,6 +372,12 @@ configmap:
   data: {}
   # -- ConfigMap binaryData
   binaryData: {}
+
+# -- Init containers to run before the main container
+initContainers: []
+# - name: init-myservice
+#   image: busybox:latest
+#   command: ['sh', '-c', 'until nslookup myservice; do echo waiting; sleep 2; done']
 
 # -- Extra containers to run alongside the main container (sidecar containers)
 extraContainers: []
